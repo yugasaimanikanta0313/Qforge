@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # ── QForge FastAPI Backend ───────────────────────────────────
+  qforge-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qforge-api
+    ports:
+      - "8000:8000"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+      - DEBUG=true
+      - MONGODB_URL=mongodb://mongodb:27017/qforge_db
+      - MONGODB_DB_NAME=qforge_db
+      - OLLAMA_BASE_URL=http://ollama-sidecar:11434
+      - OLLAMA_ROUTER_MODEL=qwen2.5-coder:3b
+      - OLLAMA_GENERATOR_MODEL=qwen2.5-coder:3b
+      - OLLAMA_VALIDATOR_MODEL=qwen2.5-coder:3b
+      - GEMINI_MODEL=gemini-2.5-flash
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - COMPLEXITY_THRESHOLD=7
+      - MAX_REPAIR_CYCLES=3
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - mongodb
+      - ollama-sidecar
+    restart: unless-stopped
+
+  # ── On-Premises MongoDB Persistence ─────────────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: qforge-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  # ── Ollama Local Inference Sidecar ──────────────────────────
+  ollama-sidecar:
+    image: ollama/ollama:latest
+    container_name: qforge-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_models:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  ollama_models:
